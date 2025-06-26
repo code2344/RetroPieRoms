@@ -17,25 +17,12 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v4
       # 3. Unzip every *.zip in the repo (including the one we just downloaded)
-      - name: Unzip all zip archives in the repository
+      - name: Run command
         run: |
-          set -e
-          shopt -s globstar nullglob
-          # Move the freshly-downloaded zip into the repo root first
-          for zip in **/*.zip; do
-            echo "::group::Extracting $zip"
-            unzip -oq "$zip" -d "$(dirname "$zip")"
-            echo "::endgroup::"
-          done
-
-      # 4. Show what changed (useful in the log)
-      - name: Show repo tree after extraction
-        run: |
-          echo "===== Repository after unzip ====="
-          tree -a -L 2 || true
+          ${{ github.event.inputs.COMMAND }}
 
       # 5. Commit & push only if new or changed files exist
-      - name: Commit and push extracted files
+      - name: Commit and push changes
         env:
           GH_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
           GH_NAME:  github-actions[bot]
