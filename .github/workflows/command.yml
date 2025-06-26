@@ -1,0 +1,51 @@
+name: Run command
+
+on:
+  # Manual trigger in the Actions tab
+  workflow_dispatch:
+    inputs:
+      COMMAND:
+        description: "command to run"
+        required: true
+
+jobs:
+  fetch_and_unzip:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Get current repo contents
+      - name: Check out repo
+        uses: actions/checkout@v4
+      # 3. Unzip every *.zip in the repo (including the one we just downloaded)
+      - name: Unzip all zip archives in the repository
+        run: |
+          set -e
+          shopt -s globstar nullglob
+          # Move the freshly-downloaded zip into the repo root first
+          for zip in **/*.zip; do
+            echo "::group::Extracting $zip"
+            unzip -oq "$zip" -d "$(dirname "$zip")"
+            echo "::endgroup::"
+          done
+
+      # 4. Show what changed (useful in the log)
+      - name: Show repo tree after extraction
+        run: |
+          echo "===== Repository after unzip ====="
+          tree -a -L 2 || true
+
+      # 5. Commit & push only if new or changed files exist
+      - name: Commit and push extracted files
+        env:
+          GH_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GH_NAME:  github-actions[bot]
+        run: |
+          git config user.email "$GH_EMAIL"
+          git config user.name  "$GH_NAME"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing new to commit."
+          else
+            git commit -m "CI: extract zip archives"
+            git push
+          fi
