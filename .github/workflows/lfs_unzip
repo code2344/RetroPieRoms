@@ -1,0 +1,51 @@
+name: Download and unzip ROMs with LFS
+
+on:
+  workflow_dispatch:
+    inputs:
+      FILE_URL:
+        description: "Direct URL to ROM ZIP file (must be legal)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  download_and_push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout with LFS enabled
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Set up Git LFS
+        run: |
+          git lfs install
+          git lfs track "*.zip"
+          git lfs track "*.nes"
+          git lfs track "*.smc"
+          git add .gitattributes
+          git commit -m "Enable LFS for ROM filetypes" || echo "No .gitattributes changes"
+
+      - name: Download ROM archive
+        run: |
+          wget "${{ github.event.inputs.FILE_URL }}" -O roms.zip
+
+      - name: Unzip everything
+        run: |
+          mkdir -p roms
+          unzip -oq roms.zip -d roms
+          find roms -name '*.zip' -exec unzip -oq {} -d roms \;
+
+      - name: Show files
+        run: tree -a roms || ls -R roms
+
+      - name: Commit and push files with LFS
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add roms
+          git commit -m "Add ROMs via GitHub Actions + LFS" || echo "No changes"
+          git push
