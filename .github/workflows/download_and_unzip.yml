@@ -16,20 +16,12 @@ jobs:
       # 1. Get current repo contents
       - name: Check out repo
         uses: actions/checkout@v4
-
-      # 2. Download the file supplied by the caller
-      - name: wget the supplied file
-        run: |
-          echo "Downloading ${{ github.event.inputs.FILE_URL }}"
-          wget -q "${{ github.event.inputs.FILE_URL }}" -O /tmp/download.zip
-
       # 3. Unzip every *.zip in the repo (including the one we just downloaded)
       - name: Unzip all zip archives in the repository
         run: |
           set -e
           shopt -s globstar nullglob
           # Move the freshly-downloaded zip into the repo root first
-          mv /tmp/download.zip .
           for zip in **/*.zip; do
             echo "::group::Extracting $zip"
             unzip -oq "$zip" -d "$(dirname "$zip")"
