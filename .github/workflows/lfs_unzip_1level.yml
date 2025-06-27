@@ -1,0 +1,56 @@
+name: Download and unzip (single level) with LFS
+
+on:
+  workflow_dispatch:
+    inputs:
+      FILE_URL:
+        description: "Direct URL to ROM ZIP file (must be legal)"
+        required: true
+
+permissions:
+  contents: write          # let the GITHUB_TOKEN push commits
+
+jobs:
+  download_and_push:
+    runs-on: ubuntu-latest
+    steps:
+      # 1  Clone repo with Git-LFS support
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      # 2  Initialise / update Git LFS tracking
+      - name: Set up Git LFS
+        run: |
+          git lfs install
+          git lfs track "*.zip"
+          git lfs track "*.nes" "*.smc"   # add other ROM extensions if needed
+          git add .gitattributes
+          git commit -m "Enable LFS tracking for ROMs" || true   # ignore if unchanged
+
+      # 3  Download the top-level archive
+      - name: Download ROM archive
+        run: |
+          echo "Fetching ${{ github.event.inputs.FILE_URL }}"
+          wget -q -O roms.zip "${{ github.event.inputs.FILE_URL }}"
+
+      # 4  Unzip **only** the first level
+      - name: Unzip first-level archive
+        run: |
+          mkdir -p roms
+          unzip -oq roms.zip -d roms
+          rm roms.zip          # optional: remove the downloaded file
+
+      # 5  Show result (handy for logs)
+      - name: Show ROM directory tree
+        run: |
+          tree -a -L 2 roms || ls -R roms
+
+      # 6  Commit & push via LFS
+      - name: Commit and push files
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add roms
+          git commit -m "Add first-level unzipped ROMs via LFS" || echo "No changes"
+          git push
