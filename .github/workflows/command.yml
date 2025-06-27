@@ -9,13 +9,15 @@ on:
         required: true
 
 jobs:
-  fetch_and_unzip:
+  command:
     runs-on: ubuntu-latest
 
     steps:
       # 1. Get current repo contents
       - name: Check out repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       # 3. Unzip every *.zip in the repo (including the one we just downloaded)
       - name: Run command
         run: |
